@@ -1,3 +1,7 @@
+# fastText中文词向量训练调优
+这个工具基于最新版本fastText，针对于原版fastText对中文词向量训练存在的一些问题，探讨如何能够训练输出一份更优质的中文词向量。
+
+以下为原版内容：
 # fastText
 [fastText](https://fasttext.cc/) is a library for efficient learning of word representations and sentence classification.
 
