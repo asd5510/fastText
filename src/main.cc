@@ -13,6 +13,7 @@
 #include "args.h"
 #include "autotune.h"
 #include "fasttext.h"
+#include <string>
 
 using namespace fasttext;
 
@@ -21,25 +22,19 @@ void printUsage() {
       << "usage: fasttext <command> <args>\n\n"
       << "The commands supported by fasttext are:\n\n"
       << "  supervised              train a supervised classifier\n"
-      << "  quantize                quantize a model to reduce the memory "
-         "usage\n"
+      << "  quantize                quantize a model to reduce the memory usage\n"
       << "  test                    evaluate a supervised classifier\n"
-      << "  test-label              print labels with precision and recall "
-         "scores\n"
+      << "  test-label              print labels with precision and recall scores\n"
       << "  predict                 predict most likely labels\n"
-      << "  predict-prob            predict most likely labels with "
-         "probabilities\n"
+      << "  predict-prob            predict most likely labels with probabilities\n"
       << "  skipgram                train a skipgram model\n"
       << "  cbow                    train a cbow model\n"
       << "  print-word-vectors      print word vectors given a trained model\n"
-      << "  print-sentence-vectors  print sentence vectors given a trained "
-         "model\n"
-      << "  print-ngrams            print ngrams given a trained model and "
-         "word\n"
+      << "  print-sentence-vectors  print sentence vectors given a trained model\n"
+      << "  print-ngrams            print ngrams given a trained model and word\n"
       << "  nn                      query for nearest neighbors\n"
       << "  analogies               query for analogies\n"
-      << "  dump                    dump arguments,dictionary,input/output "
-         "vectors\n"
+      << "  dump                    dump arguments,dictionary,input/output vectors\n"
       << std::endl;
 }
 
@@ -292,13 +287,46 @@ void printNgrams(const std::vector<std::string> args) {
   std::string word(args[3]);
   std::vector<std::pair<std::string, Vector>> ngramVectors =
       fasttext.getNgramVectors(word);
-
   for (const auto& ngramVector : ngramVectors) {
     std::cout << ngramVector.first << " " << ngramVector.second << std::endl;
   }
-
   exit(0);
 }
+
+void printNgramsEx(const std::vector<std::string> args) {
+    if (args.size() != 5) {
+        printPrintNgramsUsage();
+        exit(EXIT_FAILURE);
+    }
+    FastText fasttext;
+    fasttext.loadModel(std::string(args[2]));
+
+//    std::string word(args[3]);
+//    std::vector<std::pair<std::string, Vector>> ngramVectors =
+//            fasttext.getNgramVectors(word);
+
+    std::ifstream ifs(args[3]);
+
+    std::ofstream ofs(args[4]);
+    std::string w;
+    std::set<std::string> s;
+
+    while( std::getline(ifs,w) ) {
+        std::vector<std::pair<std::string, Vector>> ngramVectors =
+        fasttext.getNgramVectors(w);
+
+        for (const auto& ngramVector : ngramVectors) {
+            if (s.count(ngramVector.first) == 0) {
+                ofs << ngramVector.first << " " << ngramVector.second << std::endl;
+                s.insert(ngramVector.first);
+            }
+        }
+    }
+    ifs.close();
+    ofs.close();
+    exit(0);
+}
+
 
 void nn(const std::vector<std::string> args) {
   int32_t k;
@@ -314,14 +342,44 @@ void nn(const std::vector<std::string> args) {
   fasttext.loadModel(std::string(args[2]));
   std::string prompt("Query word? ");
   std::cout << prompt;
-
   std::string queryWord;
   while (std::cin >> queryWord) {
+    std::cout << queryWord;
     printPredictions(fasttext.getNN(queryWord, k), true, true);
     std::cout << prompt;
   }
   exit(0);
 }
+
+
+void nnComp(const std::vector<std::string> args) {
+    int32_t k;
+    if (args.size() == 5) {
+        k = 10;
+    } else if (args.size() == 6) {
+        k = std::stoi(args[3]);
+    } else {
+        printNNUsage();
+        exit(EXIT_FAILURE);
+    }
+    int factor = std::stoi(args[4]);
+    bool addWo = std::stoi(args[5]);
+
+    FastText fasttext;
+    fasttext.loadModel(std::string(args[2]));
+    std::string prompt("Query word? ");
+    std::cout << prompt;
+    std::string queryWord;
+    while (std::cin >> queryWord) {
+        std::cout << "raw nn result: " << std::endl;
+        printPredictions(fasttext.getNN(queryWord, k), true, true);
+        std::cout << "modified nn result: " << std::endl;
+        printPredictions(fasttext.getNNMod(queryWord, k, factor, addWo), true, true);
+        std::cout << prompt;
+    }
+    exit(0);
+}
+
 
 void analogies(const std::vector<std::string> args) {
   int32_t k;
@@ -381,6 +439,7 @@ void train(const std::vector<std::string> args) {
   }
   fasttext->saveModel(outputFileName);
   fasttext->saveVectors(a.output + ".vec");
+  fasttext->saveVectorsMod(a.output + "_mod.vec");
   if (a.saveOutput) {
     fasttext->saveOutput(a.output + ".output");
   }
@@ -438,8 +497,12 @@ int main(int argc, char** argv) {
     printSentenceVectors(args);
   } else if (command == "print-ngrams") {
     printNgrams(args);
+  } else if (command == "print-ngramsex") {
+      printNgramsEx(args);
   } else if (command == "nn") {
     nn(args);
+  } else if (command == "nncomp") {
+      nnComp(args);
   } else if (command == "analogies") {
     analogies(args);
   } else if (command == "predict" || command == "predict-prob") {

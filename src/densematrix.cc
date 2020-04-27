@@ -31,7 +31,7 @@ void DenseMatrix::zero() {
   std::fill(data_.begin(), data_.end(), 0.0);
 }
 
-void DenseMatrix::uniformThread(real a, int block, int32_t seed) {
+void DenseMatrix::uniformThread(real a, int block, int32_t seed) {//随机初始化matrix
   std::minstd_rand rng(block + seed);
   std::uniform_real_distribution<> uniform(-a, a);
   int64_t blockSize = (m_ * n_) / 10;
@@ -43,17 +43,12 @@ void DenseMatrix::uniformThread(real a, int block, int32_t seed) {
 }
 
 void DenseMatrix::uniform(real a, unsigned int thread, int32_t seed) {
-  if (thread > 1) {
-    std::vector<std::thread> threads;
-    for (int i = 0; i < thread; i++) {
-      threads.push_back(std::thread([=]() { uniformThread(a, i, seed); }));
-    }
-    for (int32_t i = 0; i < threads.size(); i++) {
-      threads[i].join();
-    }
-  } else {
-    // webassembly can't instantiate `std::thread`
-    uniformThread(a, 0, seed);
+  std::vector<std::thread> threads;
+  for (int i = 0; i < thread; i++) {
+    threads.push_back(std::thread([=]() { uniformThread(a, i, seed); }));
+  }
+  for (int32_t i = 0; i < threads.size(); i++) {
+    threads[i].join();
   }
 }
 
@@ -149,7 +144,7 @@ void DenseMatrix::addRowToVector(Vector& x, int32_t i, real a) const {
 void DenseMatrix::save(std::ostream& out) const {
   out.write((char*)&m_, sizeof(int64_t));
   out.write((char*)&n_, sizeof(int64_t));
-  out.write((char*)data_.data(), m_ * n_ * sizeof(real));
+  out.write((char*)data_.data(), m_ * n_ * sizeof(real));//stl::vector::data()返回vector的起始位置指针(Returns a direct pointer to the memory array used internally by the vector to store its owned elements.)
 }
 
 void DenseMatrix::load(std::istream& in) {

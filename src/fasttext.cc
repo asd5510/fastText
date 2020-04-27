@@ -100,14 +100,21 @@ int32_t FastText::getSubwordId(const std::string& subword) const {
   return dict_->nwords() + h;
 }
 
-void FastText::getWordVector(Vector& vec, const std::string& word) const {
+void FastText::getWordVector(Vector& vec, const std::string& word, int factor, bool addWo) const {
   const std::vector<int32_t>& ngrams = dict_->getSubwords(word);
   vec.zero();
   for (int i = 0; i < ngrams.size(); i++) {
     addInputVector(vec, ngrams[i]);
   }
+  for (int i = 0; i < factor; i++) {
+    addInputVector(vec,ngrams[0]);//控制subwords中word emb和subword/char emb的加权
+  }
   if (ngrams.size() > 0) {
-    vec.mul(1.0 / ngrams.size());
+    vec.mul(1.0 / (ngrams.size()+factor));
+  }
+  if (addWo == true) {
+    const int id = dict_->getId(word);
+    vec.addRow(*output_, id);
   }
 }
 
@@ -135,6 +142,26 @@ void FastText::saveVectors(const std::string& filename) {
     ofs << word << " " << vec << std::endl;
   }
   ofs.close();
+}
+
+
+void FastText::saveVectorsMod(const std::string& filename) {
+    if (!input_ || !output_) {
+        throw std::runtime_error("Model never trained");
+    }
+    std::ofstream ofs(filename);
+    if (!ofs.is_open()) {
+        throw std::invalid_argument(
+                filename + " cannot be opened for saving vectors!");
+    }
+    ofs << dict_->nwords() << " " << args_->dim << std::endl;
+    Vector vec(args_->dim);
+    for (int32_t i = 0; i < dict_->nwords(); i++) {
+        std::string word = dict_->getWord(i);
+        getWordVector(vec, word, 2, 1);
+        ofs << word << " " << vec << std::endl;
+    }
+    ofs.close();
 }
 
 void FastText::saveOutput(const std::string& filename) {
@@ -182,7 +209,7 @@ void FastText::signModel(std::ostream& out) {
 }
 
 void FastText::saveModel(const std::string& filename) {
-  std::ofstream ofs(filename, std::ofstream::binary);
+  std::ofstream ofs(filename,std::ofstream::binary);
   if (!ofs.is_open()) {
     throw std::invalid_argument(filename + " cannot be opened for saving!");
   }
@@ -263,7 +290,7 @@ void FastText::loadModel(std::istream& in) {
   buildModel();
 }
 
-std::tuple<int64_t, double, double> FastText::progressInfo(real progress) {
+void FastText::printInfo(real progress, real loss, std::ostream& log_stream) {
   double t = utils::getDuration(start_, std::chrono::steady_clock::now());
   double lr = args_->lr * (1.0 - progress);
   double wst = 0;
@@ -271,22 +298,14 @@ std::tuple<int64_t, double, double> FastText::progressInfo(real progress) {
   int64_t eta = 2592000; // Default to one month in seconds (720 * 3600)
 
   if (progress > 0 && t >= 0) {
-    eta = t * (1 - progress) / progress;
+    progress = progress * 100;
+    eta = t * (100 - progress) / progress;
     wst = double(tokenCount_) / t / args_->thread;
   }
 
-  return std::tuple<double, double, int64_t>(wst, lr, eta);
-}
-
-void FastText::printInfo(real progress, real loss, std::ostream& log_stream) {
-  double wst;
-  double lr;
-  int64_t eta;
-  std::tie<double, double, int64_t>(wst, lr, eta) = progressInfo(progress);
-
   log_stream << std::fixed;
   log_stream << "Progress: ";
-  log_stream << std::setprecision(1) << std::setw(5) << (progress * 100) << "%";
+  log_stream << std::setprecision(1) << std::setw(5) << progress << "%";
   log_stream << " words/sec/thread: " << std::setw(7) << int64_t(wst);
   log_stream << " lr: " << std::setw(9) << std::setprecision(6) << lr;
   log_stream << " avg.loss: " << std::setw(9) << std::setprecision(6) << loss;
@@ -312,7 +331,7 @@ std::vector<int32_t> FastText::selectEmbeddings(int32_t cutoff) const {
   return idx;
 }
 
-void FastText::quantize(const Args& qargs, const TrainCallback& callback) {
+void FastText::quantize(const Args& qargs) {
   if (args_->model != model_name::sup) {
     throw std::invalid_argument(
         "For now we only support quantization of supervised models");
@@ -344,9 +363,10 @@ void FastText::quantize(const Args& qargs, const TrainCallback& callback) {
       args_->verbose = qargs.verbose;
       auto loss = createLoss(output_);
       model_ = std::make_shared<Model>(input, output, loss, normalizeGradient);
-      startThreads(callback);
+      startThreads();
     }
   }
+
   input_ = std::make_shared<QuantMatrix>(
       std::move(*(input.get())), qargs.dsub, qargs.qnorm);
 
@@ -354,6 +374,7 @@ void FastText::quantize(const Args& qargs, const TrainCallback& callback) {
     output_ = std::make_shared<QuantMatrix>(
         std::move(*(output.get())), 2, qargs.qnorm);
   }
+
   quant_ = true;
   auto loss = createLoss(output_);
   model_ = std::make_shared<Model>(input_, output_, loss, normalizeGradient);
@@ -562,6 +583,29 @@ std::vector<std::pair<real, std::string>> FastText::getNN(
   return getNN(*wordVectors_, query, k, {word});
 }
 
+
+std::vector<std::pair<real, std::string>> FastText::getNNMod(const std::string &word, int32_t k, int factor, bool addWo) {
+    Vector query(args_->dim);
+    getWordVector(query, word, factor, addWo);
+    if (!wordVectorsMod) {
+        wordVectorsMod = std::unique_ptr<DenseMatrix>(
+                new DenseMatrix(dict_->nwords(), args_->dim));
+        Vector vec(args_->dim);
+
+        wordVectorsMod->zero();
+        for (int32_t i = 0; i < dict_->nwords(); i++) {
+            std::string word = dict_->getWord(i);
+            getWordVector(vec, word,factor, addWo);
+            real norm = vec.norm();
+            if (norm > 0) {
+                wordVectorsMod->addVectorToRow(vec, i, 1.0 / norm);
+            }
+        }
+    }
+    return getNN(*wordVectorsMod, query, k, {word});
+}
+
+
 std::vector<std::pair<real, std::string>> FastText::getNN(
     const DenseMatrix& wordVectors,
     const Vector& query,
@@ -621,7 +665,7 @@ bool FastText::keepTraining(const int64_t ntokens) const {
   return tokenCount_ < args_->epoch * ntokens && !trainException_;
 }
 
-void FastText::trainThread(int32_t threadId, const TrainCallback& callback) {
+void FastText::trainThread(int32_t threadId) {
   std::ifstream ifs(args_->input);
   utils::seek(ifs, threadId * utils::size(ifs) / args_->thread);
 
@@ -630,18 +674,9 @@ void FastText::trainThread(int32_t threadId, const TrainCallback& callback) {
   const int64_t ntokens = dict_->ntokens();
   int64_t localTokenCount = 0;
   std::vector<int32_t> line, labels;
-  uint64_t callbackCounter = 0;
   try {
     while (keepTraining(ntokens)) {
       real progress = real(tokenCount_) / (args_->epoch * ntokens);
-      if (callback && ((callbackCounter++ % 64) == 0)) {
-        double wst;
-        double lr;
-        int64_t eta;
-        std::tie<double, double, int64_t>(wst, lr, eta) =
-            progressInfo(progress);
-        callback(progress, loss_, wst, lr, eta);
-      }
       real lr = args_->lr * (1.0 - progress);
       if (args_->model == model_name::sup) {
         localTokenCount += dict_->getLine(ifs, line, labels);
@@ -732,7 +767,7 @@ std::shared_ptr<Matrix> FastText::createTrainOutputMatrix() const {
   return output;
 }
 
-void FastText::train(const Args& args, const TrainCallback& callback) {
+void FastText::train(const Args& args) {
   args_ = std::make_shared<Args>(args);
   dict_ = std::make_shared<Dictionary>(args_);
   if (args_->input == "-") {
@@ -744,7 +779,8 @@ void FastText::train(const Args& args, const TrainCallback& callback) {
     throw std::invalid_argument(
         args_->input + " cannot be opened for training!");
   }
-  dict_->readFromFile(ifs);
+  //dict_->readFromFile(ifs);
+  (*dict_).readFromFile(ifs);//its the same as above
   ifs.close();
 
   if (!args_->pretrainedVectors.empty()) {
@@ -757,7 +793,7 @@ void FastText::train(const Args& args, const TrainCallback& callback) {
   auto loss = createLoss(output_);
   bool normalizeGradient = (args_->model == model_name::sup);
   model_ = std::make_shared<Model>(input_, output_, loss, normalizeGradient);
-  startThreads(callback);
+  startThreads();
 }
 
 void FastText::abort() {
@@ -768,19 +804,14 @@ void FastText::abort() {
   }
 }
 
-void FastText::startThreads(const TrainCallback& callback) {
+void FastText::startThreads() {
   start_ = std::chrono::steady_clock::now();
   tokenCount_ = 0;
   loss_ = -1;
   trainException_ = nullptr;
   std::vector<std::thread> threads;
-  if (args_->thread > 1) {
-    for (int32_t i = 0; i < args_->thread; i++) {
-      threads.push_back(std::thread([=]() { trainThread(i, callback); }));
-    }
-  } else {
-    // webassembly can't instantiate `std::thread`
-    trainThread(0, callback);
+  for (int32_t i = 0; i < args_->thread; i++) {
+    threads.push_back(std::thread([=]() { trainThread(i); }));
   }
   const int64_t ntokens = dict_->ntokens();
   // Same condition as trainThread
@@ -792,7 +823,7 @@ void FastText::startThreads(const TrainCallback& callback) {
       printInfo(progress, loss_, std::cerr);
     }
   }
-  for (int32_t i = 0; i < threads.size(); i++) {
+  for (int32_t i = 0; i < args_->thread; i++) {
     threads[i].join();
   }
   if (trainException_) {

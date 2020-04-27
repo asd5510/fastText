@@ -44,7 +44,7 @@ class DenseMatrix : public Matrix {
     return data_.data();
   }
 
-  inline const real& at(int64_t i, int64_t j) const {
+  inline const real& at(int64_t i, int64_t j) const {//非静态成员函数后面加const（加到非成员函数或静态成员后面会产生编译错误），表示成员函数隐含传入的this指针为const指针，决定了在该成员函数中，任意修改它所在的类的成员的操作都是不允许的
     assert(i * n_ + j < data_.size());
     return data_[i * n_ + j];
   };

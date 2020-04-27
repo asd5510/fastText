@@ -12,7 +12,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <functional>
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -32,29 +31,26 @@
 namespace fasttext {
 
 class FastText {
- public:
-  using TrainCallback =
-      std::function<void(float, float, double, double, int64_t)>;
-
  protected:
   std::shared_ptr<Args> args_;
   std::shared_ptr<Dictionary> dict_;
   std::shared_ptr<Matrix> input_;
   std::shared_ptr<Matrix> output_;
   std::shared_ptr<Model> model_;
-  std::atomic<int64_t> tokenCount_{};
+  std::atomic<int64_t> tokenCount_{}; //C++11之 std::atomic （不用锁实现线程互斥）
   std::atomic<real> loss_{};
   std::chrono::steady_clock::time_point start_;
   bool quant_;
   int32_t version;
   std::unique_ptr<DenseMatrix> wordVectors_;
+  std::unique_ptr<DenseMatrix> wordVectorsMod;
   std::exception_ptr trainException_;
 
   void signModel(std::ostream&);
   bool checkModel(std::istream&);
-  void startThreads(const TrainCallback& callback = {});
+  void startThreads();
   void addInputVector(Vector&, int32_t) const;
-  void trainThread(int32_t, const TrainCallback& callback);
+  void trainThread(int32_t);
   std::vector<std::pair<real, std::string>> getNN(
       const DenseMatrix& wordVectors,
       const Vector& queryVec,
@@ -78,7 +74,6 @@ class FastText {
   void precomputeWordVectors(DenseMatrix& wordVectors);
   bool keepTraining(const int64_t ntokens) const;
   void buildModel();
-  std::tuple<int64_t, double, double> progressInfo(real progress);
 
  public:
   FastText();
@@ -87,7 +82,7 @@ class FastText {
 
   int32_t getSubwordId(const std::string& subword) const;
 
-  void getWordVector(Vector& vec, const std::string& word) const;
+  void getWordVector(Vector& vec, const std::string& word, int factor = 0, bool addWo = false) const;
 
   void getSubwordVector(Vector& vec, const std::string& subword) const;
 
@@ -120,7 +115,7 @@ class FastText {
 
   void getSentenceVector(std::istream& in, Vector& vec);
 
-  void quantize(const Args& qargs, const TrainCallback& callback = {});
+  void quantize(const Args& qargs);
 
   std::tuple<int64_t, double, double>
   test(std::istream& in, int32_t k, real threshold = 0.0);
@@ -152,7 +147,7 @@ class FastText {
       const std::string& wordB,
       const std::string& wordC);
 
-  void train(const Args& args, const TrainCallback& callback = {});
+  void train(const Args& args);
 
   void abort();
 
@@ -164,5 +159,9 @@ class FastText {
    public:
     AbortError() : std::runtime_error("Aborted.") {}
   };
+
+  std::vector<std::pair<real, std::string>> getNNMod(const std::string &word, int32_t k, int i, bool b);
+
+    void saveVectorsMod(const std::string &filename);
 };
 } // namespace fasttext
