@@ -62,12 +62,8 @@ class Model {
       real threshold,
       Predictions& heap,
       State& state) const;
-  void update(
-      const std::vector<int32_t>& input,
-      const std::vector<int32_t>& targets,
-      int32_t targetIndex,
-      real lr,
-      State& state);
+  void update(const std::vector<int32_t> &input, const std::vector<int32_t> &targets, int32_t targetIndex, real lr,
+              State &state, int factor=0);
   void computeHidden(const std::vector<int32_t>& input, State& state) const;
 
   real std_log(real) const;

@@ -20,6 +20,7 @@ Args::Args() {
   lr = 0.05;
   dim = 100;
   ws = 5;
+  factor = 5;
   epoch = 5;
   minCount = 5;
   minCountLabel = 0;
@@ -179,6 +180,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         saveOutput = true;
         ai--;
       } else if (args[ai] == "-seed") {
+        seed = std::stoi(args.at(ai + 1));
+      } else if (args[ai] == "-factor") {
         seed = std::stoi(args.at(ai + 1));
       } else if (args[ai] == "-qnorm") {
         qnorm = true;

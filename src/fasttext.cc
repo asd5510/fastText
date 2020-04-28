@@ -389,11 +389,11 @@ void FastText::supervised(
     return;
   }
   if (args_->loss == loss_name::ova) {
-    model_->update(line, labels, Model::kAllLabelsAsTarget, lr, state);
+      model_->update(line, labels, Model::kAllLabelsAsTarget, lr, state, 0);
   } else {
     std::uniform_int_distribution<> uniform(0, labels.size() - 1);
     int32_t i = uniform(state.rng);
-    model_->update(line, labels, i, lr, state);
+      model_->update(line, labels, i, lr, state, 0);
   }
 }
 
@@ -412,7 +412,7 @@ void FastText::cbow(
         bow.insert(bow.end(), ngrams.cbegin(), ngrams.cend());
       }
     }
-    model_->update(bow, line, w, lr, state);
+      model_->update(bow, line, w, lr, state, 0);
   }
 }
 
@@ -424,9 +424,14 @@ void FastText::skipgram(
   for (int32_t w = 0; w < line.size(); w++) {
     int32_t boundary = uniform(state.rng);
     const std::vector<int32_t>& ngrams = dict_->getSubwords(line[w]);
+    std::vector<int32_t> ngramsmod = ngrams;
+    int factor = args_->factor;
+    if (ngramsmod.size() > 0) {
+        for (int i=0; i<factor; i++) ngramsmod.insert(ngramsmod.end(),ngramsmod[0]); //mod avg-pool to weighted-avg-pool
+    }
     for (int32_t c = -boundary; c <= boundary; c++) {
       if (c != 0 && w + c >= 0 && w + c < line.size()) {
-        model_->update(ngrams, line, w + c, lr, state);
+          model_->update(ngramsmod, line, w + c, lr, state, factor);
       }
     }
   }

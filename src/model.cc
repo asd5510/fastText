@@ -66,12 +66,8 @@ void Model::predict(
   loss_->predict(k, threshold, heap, state);
 }
 
-void Model::update(
-    const std::vector<int32_t>& input,
-    const std::vector<int32_t>& targets,
-    int32_t targetIndex,
-    real lr,
-    State& state) {
+void Model::update(const std::vector<int32_t> &input, const std::vector<int32_t> &targets, int32_t targetIndex, real lr,
+                   State &state, int factor) {
   if (input.size() == 0) {
     return;
   }
@@ -88,6 +84,7 @@ void Model::update(
   for (auto it = input.cbegin(); it != input.cend(); ++it) {
     wi_->addVectorToRow(grad, *it, 1.0);
   }
+  for (int i=0; i<factor; i++) wi_->addVectorToRow(grad, *input.cbegin(), 1.0); //grad add weight
 }
 
 real Model::std_log(real x) const {

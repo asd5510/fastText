@@ -59,6 +59,8 @@ class Args {
   size_t cutoff;
   size_t dsub;
 
+  int factor;
+
   std::string autotuneValidationFile;
   std::string autotuneMetric;
   int autotunePredictions;
