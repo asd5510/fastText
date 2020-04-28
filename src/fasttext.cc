@@ -158,7 +158,7 @@ void FastText::saveVectorsMod(const std::string& filename) {
     Vector vec(args_->dim);
     for (int32_t i = 0; i < dict_->nwords(); i++) {
         std::string word = dict_->getWord(i);
-        getWordVector(vec, word, 2, 1);
+        getWordVector(vec, word, args_->factor, 1);
         ofs << word << " " << vec << std::endl;
     }
     ofs.close();

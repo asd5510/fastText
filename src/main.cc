@@ -107,6 +107,15 @@ void quantize(const std::vector<std::string>& args) {
   exit(0);
 }
 
+void printNNCompUsage() {
+    std::cout << "usage: fasttext nn <model> <k>\n\n"
+              << "  <model>      model filename\n"
+              << "  <k>          predict top k labels\n"
+              << "  <factor>     word embedding weight factor. when -1 then use the model default factor.\n"
+              << "  <addWo>      if add Wo as word embedding\n"
+              << std::endl;
+}
+
 void printNNUsage() {
   std::cout << "usage: fasttext nn <model> <k>\n\n"
             << "  <model>      model filename\n"
@@ -354,19 +363,19 @@ void nn(const std::vector<std::string> args) {
 
 void nnComp(const std::vector<std::string> args) {
     int32_t k;
-    if (args.size() == 5) {
-        k = 10;
-    } else if (args.size() == 6) {
-        k = std::stoi(args[3]);
-    } else {
-        printNNUsage();
+    if (args.size() != 6) {
+        printNNCompUsage();
         exit(EXIT_FAILURE);
     }
+    k = std::stoi(args[3]);
     int factor = std::stoi(args[4]);
     bool addWo = std::stoi(args[5]);
 
     FastText fasttext;
     fasttext.loadModel(std::string(args[2]));
+
+    if(factor == -1) factor = fasttext.getArgs().factor;
+
     std::string prompt("Query word? ");
     std::cout << prompt;
     std::string queryWord;
@@ -502,7 +511,7 @@ int main(int argc, char** argv) {
   } else if (command == "nn") {
     nn(args);
   } else if (command == "nncomp") {
-      nnComp(args);
+    nnComp(args);
   } else if (command == "analogies") {
     analogies(args);
   } else if (command == "predict" || command == "predict-prob") {
