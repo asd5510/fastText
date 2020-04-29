@@ -82,7 +82,7 @@ class FastText {
 
   int32_t getSubwordId(const std::string& subword) const;
 
-  void getWordVector(Vector& vec, const std::string& word, int factor = 0, bool addWo = false) const;
+  void getWordVector(Vector& vec, const std::string& word, int factor = 0, float addWo = 0.0) const;
 
   void getSubwordVector(Vector& vec, const std::string& subword) const;
 
@@ -163,5 +163,6 @@ class FastText {
   std::vector<std::pair<real, std::string>> getNNMod(const std::string &word, int32_t k, int i, bool b);
 
     void saveVectorsMod(const std::string &filename);
+
 };
 } // namespace fasttext

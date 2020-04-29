@@ -60,6 +60,7 @@ class Args {
   size_t dsub;
 
   int factor;
+  double addWo;
 
   std::string autotuneValidationFile;
   std::string autotuneMetric;
