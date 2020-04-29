@@ -164,5 +164,6 @@ class FastText {
 
     void saveVectorsMod(const std::string &filename);
 
+    void saveSubWordVectors(const std::string &filename);
 };
 } // namespace fasttext

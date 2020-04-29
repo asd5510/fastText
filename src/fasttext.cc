@@ -164,6 +164,30 @@ void FastText::saveVectorsMod(const std::string& filename) {
     ofs.close();
 }
 
+
+void FastText::saveSubWordVectors(const std::string& filename) {
+    if (!input_ || !output_) {
+        throw std::runtime_error("Model never trained");
+    }
+    std::ofstream ofs(filename);
+    if (!ofs.is_open()) {
+        throw std::invalid_argument(
+                filename + " cannot be opened for saving vectors!");
+    }
+    ofs << dict_->nwords() << " " << args_->dim << std::endl;
+    Vector vec(args_->dim);
+    for (int32_t i = 0; i < dict_->nwords(); i++) {
+        std::vector<std::pair<std::string, Vector>> ngramVectors =
+                getNgramVectors(dict_->getWord(i));
+        ngramVectors.erase(ngramVectors.begin());
+        for (const auto& ngramVector : ngramVectors) {
+            ofs << ngramVector.first << " " << ngramVector.second << std::endl;
+        }
+    }
+    ofs.close();
+}
+
+
 void FastText::saveOutput(const std::string& filename) {
   std::ofstream ofs(filename);
   if (!ofs.is_open()) {
@@ -403,16 +427,21 @@ void FastText::cbow(
     const std::vector<int32_t>& line) {
   std::vector<int32_t> bow;
   std::uniform_int_distribution<> uniform(1, args_->ws);
+  int factor = args_->factor;
   for (int32_t w = 0; w < line.size(); w++) {
     int32_t boundary = uniform(state.rng);
     bow.clear();
     for (int32_t c = -boundary; c <= boundary; c++) {
       if (c != 0 && w + c >= 0 && w + c < line.size()) {
         const std::vector<int32_t>& ngrams = dict_->getSubwords(line[w + c]);
-        bow.insert(bow.end(), ngrams.cbegin(), ngrams.cend());
+        std::vector<int32_t> ngramsmod = ngrams;
+        if (ngramsmod.size() > 0) {
+            for (int i=0; i<factor; i++) ngramsmod.insert(ngramsmod.end(),ngramsmod[0]); //mod avg-pool to weighted-avg-pool
+        }
+        bow.insert(bow.end(), ngramsmod.cbegin(), ngramsmod.cend());
       }
     }
-      model_->update(bow, line, w, lr, state, 0);
+      model_->update(bow, line, w, lr, state, factor);
   }
 }
 

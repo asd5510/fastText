@@ -37,6 +37,7 @@ Args::Args() {
   verbose = 2;
   pretrainedVectors = "";
   saveOutput = false;
+  saveSubwords = false;
   seed = 0;
 
   factor = 5;
@@ -180,6 +181,9 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         pretrainedVectors = std::string(args.at(ai + 1));
       } else if (args[ai] == "-saveOutput") {
         saveOutput = true;
+        ai--;
+      } else if (args[ai] == "-saveSubwords") {
+        saveSubwords = true;
         ai--;
       } else if (args[ai] == "-seed") {
         seed = std::stoi(args.at(ai + 1));

@@ -449,6 +449,9 @@ void train(const std::vector<std::string> args) {
   fasttext->saveModel(outputFileName);
   fasttext->saveVectors(a.output + ".vec");
   fasttext->saveVectorsMod(a.output + "_mod.vec");
+  if (a.saveSubwords) {
+    fasttext->saveSubWordVectors(a.output + "_subwords.vec");
+  }
   if (a.saveOutput) {
     fasttext->saveOutput(a.output + ".output");
   }
