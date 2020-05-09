@@ -108,11 +108,11 @@ void quantize(const std::vector<std::string>& args) {
 }
 
 void printNNCompUsage() {
-    std::cout << "usage: fasttext nn <model> <k>\n\n"
+    std::cout << "usage: fasttext nn <model> <k> <factor> <addWo>\n\n"
               << "  <model>      model filename\n"
               << "  <k>          predict top k labels\n"
               << "  <factor>     word embedding weight factor. when -1 then use the model default factor.\n"
-              << "  <addWo>      if add Wo as word embedding\n"
+              << "  <addWo>      weight for adding Wo as word embedding\n"
               << std::endl;
 }
 
@@ -354,7 +354,7 @@ void nn(const std::vector<std::string> args) {
   std::string queryWord;
   while (std::cin >> queryWord) {
     std::cout << queryWord;
-    printPredictions(fasttext.getNN(queryWord, k), true, true);
+    printPredictions(fasttext.getNNMod(queryWord, k, fasttext.getArgs().factor, fasttext.getArgs().addWo), true, true);
     std::cout << prompt;
   }
   exit(0);

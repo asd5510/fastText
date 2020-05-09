@@ -40,8 +40,8 @@ Args::Args() {
   saveSubwords = false;
   seed = 0;
 
-  factor = 5;
-  addWo = 1;
+  factor = 0;
+  addWo = 0;
 
   qout = false;
   retrain = false;
@@ -188,9 +188,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
       } else if (args[ai] == "-seed") {
         seed = std::stoi(args.at(ai + 1));
       } else if (args[ai] == "-factor") {
-        seed = std::stoi(args.at(ai + 1));
+        factor = std::stoi(args.at(ai + 1));
       } else if (args[ai] == "-addWo") {
-        seed = std::stof(args.at(ai + 1));
+        float tmp = std::stof(args.at(ai + 1));
+        addWo = tmp;
       } else if (args[ai] == "-qnorm") {
         qnorm = true;
         ai--;
@@ -332,6 +333,8 @@ void Args::save(std::ostream& out) {
   out.write((char*)&(minn), sizeof(int));
   out.write((char*)&(maxn), sizeof(int));
   out.write((char*)&(lrUpdateRate), sizeof(int));
+  out.write((char*)&(addWo), sizeof(double));
+  out.write((char*)&(factor), sizeof(int));
   out.write((char*)&(t), sizeof(double));
 }
 
@@ -348,6 +351,8 @@ void Args::load(std::istream& in) {
   in.read((char*)&(minn), sizeof(int));
   in.read((char*)&(maxn), sizeof(int));
   in.read((char*)&(lrUpdateRate), sizeof(int));
+  in.read((char*)&(addWo), sizeof(double));
+  in.read((char*)&(factor), sizeof(int));
   in.read((char*)&(t), sizeof(double));
 }
 
