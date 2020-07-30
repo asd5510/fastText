@@ -97,7 +97,8 @@ modified nn result: 模具设计 0.803418 给排水 0.783797 专项规划 0.7769
 ```
 对于一个混乱词汇” 设力电水”，fasttext依然能够给出词向量表达(如果使用gensim词向量，这种词汇会被标识为UNK无法给出embedding表达)，通过良好的捕捉字面量的语义，弥补了词向量表征的不足。而优化后的版本没有丧失这一特性，达到了字向量和词向量相辅相成的良好效果。
 
-
+<br> 
+<br> 
 
 
 Ref:
@@ -109,13 +110,15 @@ word representation. In Empirical Methods in Natural Language Processing (EMNLP)
 
 [3] Ofir Press and Lior Wolf. Using the output embedding to improve language models. arXiv preprint arXiv:1608.05859, 2016
 
- <br> 
+<br> 
 <br>   
 <br>
 <br> 
 <br>   
 <br>
+
 ***
+
 <br>
     
 以下摘录社区版内容：
