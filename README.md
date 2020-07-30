@@ -21,9 +21,13 @@ fasttext社区版源码存在一些问题：在引入subword ngram embedding的�
 
 该思路参考GloVe训练词向量的方法，这里简单介绍一下。GloVe基于矩阵分解的原理，可以参照下边的公式。公式(1)表达了词向量和共现矩阵之间的关系，Xij表示单词i出现在单词j的上下文中的次数,w和˜w是我们要求解的词向量，其中w表征词本身的向量，˜w是词作为context时的向量。公式(2)是GloVe训练词向量的loss function。可以看到公式(1)(2)本身对于w,˜w是对称的，两者均能够反映词语义。GloVe不对w和˜w使用同一套参数是为了在更新参数的时候能够简单套用SGD，但原论文经过试验发现将两个向量加权融合效果最好[2]。
 
+ ![glove公式1](formula1.png "glove公式1")
+ 
+ ![glove公式2](formula2.png "glove公式2")
 
 同理如图2，fasttext训练词向量也有两套参数，wi,wo两个矩阵。wi矩阵是wordvec lookup embedding layer的参数，wo矩阵是词向量模型CBOW的softmax layer参数。由于训练词向量时label数量等同于词表数，所以wo也可以作为词向量的间接表达。
 
+ ![fasttext原理图](fasttext.png "fasttext原理图")
 
 许多NLP任务中会将softmax层的参数同输入embedding共享权重以提升效果[3]，对于fasttext训练词向量的模型结构体现为wi wo共享一套参数。此处fastText不这么做的原因之一是出于灵活性考虑，由于fastText训练词向量可以选择使用层次softmax或negative sampling，并且fastText除了训练词向量还做文本分类任务。当进行文本分类任务或使用层次softmax时，wo均不能对应到word embedding上。因此fasttext只使用wi矩阵作为词向量的表达。
 
@@ -59,7 +63,9 @@ fasttext社区版源码存在一些问题：在引入subword ngram embedding的�
 此处minn和maxn的参数都设置为1，即仅使用中文字向量，这适用于大部分中文词向量的训练，因为中文词不像英文单词由大量char构成，因此minn=maxn=1保证只使用1-gram 
 
 
-# 效果对比评估，公开小语料集training_m.data。
+## 效果对比评估
+
+数据集使用公开小语料集training_m.data。
 
 ./fasttext cbow -input training_m.data -output model_github_f3 -minn 1 -maxn 1 -factor 3 -addWo 0.5 –saveSubwords 
 
@@ -95,7 +101,11 @@ modified nn result: 模具设计 0.803418 给排水 0.783797 专项规划 0.7769
 对于一个混乱词汇” 设力电水”，fasttext依然能够给出词向量表达(如果使用gensim词向量，这种词汇会被标识为UNK无法给出embedding表达)，通过良好的捕捉字面量的语义，弥补了词向量表征的不足。而优化后的版本没有丧失这一特性，达到了字向量和词向量相辅相成的良好效果。
 
 
-
+Ref:
+[1] 如何评价Word2Vec作者提出的fastText算法 https://www.zhihu.com/question/48345431/answer/119566296
+[2] Jeffrey Pennington, Richard Socher, and Christopher D. Manning. 2014. Glove: Global vectors for
+word representation. In Empirical Methods in Natural Language Processing (EMNLP)
+[3] Ofir Press and Lior Wolf. Using the output embedding to improve language models. arXiv preprint arXiv:1608.05859, 2016
 
 
 以下摘录社区版内容：
