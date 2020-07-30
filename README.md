@@ -12,18 +12,18 @@ fastText训练词向量的方式同其余词向量训练工具(如gensim)的最�
 针对上述问题进行了两方面调优：
 
 
-1) 对fastText subword ngram embedding增加非均匀加权训练和融合方式
+1 对fastText subword ngram embedding增加非均匀加权训练和融合方式
 
 通过对训练阶段&梯度计算阶段&词向量计算阶段进行修改，以实现非均匀加权训练和融合方式，提升词向量部分的权重。此处注意仅仅修改词向量计算阶段的加权逻辑是不够的，还需要改写训练阶段&梯度计算阶段的avg-pool方式，改写梯度分配方式，同时整体权重需要在这三个阶段统一，这样才不会造成冲突导致不理想的结果。具体需要针对cbow和skipgram两种训练词向量的接口分别进行修改，主要修改逻辑在Fasttext和Model这两个模块中，同时为了做到可配置，还需要修改Args模块中部分逻辑。
 
 
-2) 融合fastText的wi,wo两个参数矩阵作为词向量的表达
+2 融合fastText的wi,wo两个参数矩阵作为词向量的表达
 
 该思路参考GloVe训练词向量的方法，这里简单介绍一下。GloVe基于矩阵分解的原理，可以参照下边的公式。公式(1)表达了词向量和共现矩阵之间的关系，Xij表示单词i出现在单词j的上下文中的次数,w和˜w是我们要求解的词向量，其中w表征词本身的向量，˜w是词作为context时的向量。公式(2)是GloVe训练词向量的loss function。可以看到公式(1)(2)本身对于w,˜w是对称的，两者均能够反映词语义。GloVe不对w和˜w使用同一套参数是为了在更新参数的时候能够简单套用SGD，但原论文经过试验发现将两个向量加权融合效果最好[2]。
 
  ![glove公式](formula.png "glove公式")
 
-同理如图2，fasttext训练词向量也有两套参数，wi,wo两个矩阵。wi矩阵是wordvec lookup embedding layer的参数，wo矩阵是词向量模型CBOW的softmax layer参数。由于训练词向量时label数量等同于词表数，所以wo也可以作为词向量的间接表达。
+同理如下图，fasttext训练词向量也有两套参数，wi,wo两个矩阵。wi矩阵是wordvec lookup embedding layer的参数，wo矩阵是词向量模型CBOW的softmax layer参数。由于训练词向量时label数量等同于词表数，所以wo也可以作为词向量的间接表达。
 
  ![fasttext原理图](fasttext.png "fasttext原理图")
 
@@ -41,7 +41,7 @@ fastText训练词向量的方式同其余词向量训练工具(如gensim)的最�
 
  
 
-## 使用方法：
+## 使用方法
 
 安装方式同社区版fastText相同。训练模型时主要添加额外参数：
 
