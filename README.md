@@ -43,21 +43,36 @@ fastText训练词向量的方式同其余词向量训练工具(如gensim)的最�
 
 ## 使用方法
 
-安装方式同社区版fastText相同。训练模型时主要添加额外参数：
+安装方式同社区版fastText相同。编译fasttext
+
+```make```
+
+
+为了方便测试项目附带了一个数据集test_data.zip，首先通过命令：
+
+```unzip test_data.zip```
+
+解压后得到training_m.data，一个很小的中文问答数据集，我已经预先分词了可以直接作为fasttext的输入。
+
+
+然后按推荐的参数训练：
+
+```./fasttext skipgram -input training_m.data -output model_opt -minn 1 -maxn 1 -factor 5 -addWo 0.5```
+
+介绍一下这里额外添加的参数：
 
 1） factor(default 0)，该参数表明对word emb的加权权重，factor=2表示word emb的加权权重是其余ngram emb的2倍。 factor越大，模型对word emb的训练权重也越大，ngram emb/char emb的权重越小。该参数控制了词向量在语义和字面匹配之间的权衡。
 
 2） addWo(default 0)，该参数设置最终词向量使用wo矩阵的占比，默认0同社区版fasttext相同，即wo不参与最终词向量的计算。addWo=1时，wo矩阵无衰减参与最终词向量的表达。
 
+<br>
+<br>
 
+为了对比使用默认参数训练一个模型作为对比：
 
-为了方便测试项目附带了一个数据集test_data.zip，解压后得到training_m.data，一个很小的中文问答数据集，我已经预先分词了可以直接作为fasttext的输入。
+```./fasttext skipgram -input training_m.data -output model_raw -minn 1 -maxn 1```
 
-一个推荐的训练参数为：./fasttext skipgram -input training_m.data -output model_opt -minn 1 -maxn 1 -factor 5 -addWo 0.5。
-
-为了对比使用默认参数训练一个模型作为对比：./fasttext skipgram -input training_m.data -output model_raw -minn 1 -maxn 1。默认参数下得到的模型同社区版直接训练的结果是一致的。
-
-此处minn和maxn的参数都设置为1，即仅使用中文字向量，这适用于大部分中文词向量的训练，因为中文词不像英文单词由大量char构成，因此minn=maxn=1保证只使用1-gram 
+按此默认参数下得到的模型同社区版直接训练的结果是一致的。此处minn和maxn的参数都设置为1，即仅使用中文字向量，这适用于大部分中文词向量的训练，因为中文词不像英文单词由大量char构成，因此minn=maxn=1保证只使用1-gram 
 
 
 ## 效果对比评估
