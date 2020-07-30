@@ -1,20 +1,20 @@
 # fastText中文词向量训练调优
-这个工具基于最新版本fastText，针对于原版fastText对中文词向量训练存在的一些问题，探讨如何能够训练输出一份更优质的中文词向量。
+本工具基于最新版本fastText，针对于fastText训练中文词向量存在的一些问题，尝试训练输出一份更优质的中文词向量。
 
 ## 背景
 
-此处背景是fastText训练词向量的方式同其余词向量训练工具(如gensim)的最大区别在于引入了subword ngram embedding机制。该机制会将词拆解成subword学习其embedding，在英文场景下该方式可以学习如ing，en，sub等词根的语义，对于中文而言可以实现字向量建模。该方法不仅能够学习出更精细的词向量，还能有效应对未登录词(UNK)。该方式下，最终词向量除包含词本身的embedding外还加权了subword ngram embedding。
+fastText训练词向量的方式同其余词向量训练工具(如gensim)的最大区别在于引入了subword ngram embedding机制。该机制会将词拆解成subword学习其embedding，在英文场景下该方式可以学习如ing，en，sub等词根的语义，对于中文而言可以实现字向量建模。该方法不仅能够学习出更精细的词向量，还能有效应对未登录词(UNK)。该方式下，最终词向量除包含词本身的embedding外还加权了subword ngram embedding。
 
-fasttext社区版源码存在一些问题：在引入subword ngram embedding的情况下，会出现词向量表达太过注重字面而非语义的情况，最终效果往往不如gensim等其他工具训练的词向量。这一点不少人都有提及[1]，比如’交易’的相似词汇gensim给出的是’买卖’，而fastText给出的是’交易法’。这里主要原因在于fastText最终的词向量采用了average-pooling融合word embedding和subword ngram embedding，无差别的avg-pool让字向量的权重过高。就拿"交易"这个词为例，FastText最终得到的词向量为：1/3*(w2v("交易")+c2v("交")+c2v("易"))，w2v("交易")只占了1/3的权重。
+然而在引入subword ngram embedding的情况下，会出现词向量表达太过注重字面而非语义的情况，最终效果往往不如gensim等其他工具训练的词向量。这一点不少人都有提及[1]，比如’交易’的相似词汇gensim给出的是’买卖’，而fastText给出的是’交易法’。这里主要原因在于fastText最终的词向量采用了average-pooling融合word embedding和subword ngram embedding，无差别的avg-pool让字向量的权重过高。就拿"交易"这个词为例，FastText最终得到的词向量为：1/3*(w2v("交易")+c2v("交")+c2v("易"))，w2v("交易")只占了1/3的权重。
 
-## 修改点
+## 优化点
 
-本工具基于最新版本fastText，针对上述问题调优，尝试训练输出一份更优质的中文词向量。主要优化点在于：
+针对上述问题进行了两方面调优：
 
 
 1) 对fastText subword ngram embedding增加非均匀加权训练和融合方式
 
-通过对训练阶段&梯度计算阶段&词向量计算阶段进行修改，以实现非均匀加权训练和融合方式，提升词向量部分的权重。此处注意仅仅修改词向量计算阶段的加权逻辑是不够的，还需要改写训练阶段&梯度计算阶段的avg-pool方式，改写梯度分配方式，同时整体权重需要在这三个阶段统一，这样才不会造成冲突导致不理想的结果。图1描述了fasttext的源码结构，需要针对cbow和skipgram两种训练词向量的接口分别进行修改，主要修改逻辑都在Fasttext和Model这两个模块中，同时为了做到可配置，还需要修改Args模块中部分逻辑。
+通过对训练阶段&梯度计算阶段&词向量计算阶段进行修改，以实现非均匀加权训练和融合方式，提升词向量部分的权重。此处注意仅仅修改词向量计算阶段的加权逻辑是不够的，还需要改写训练阶段&梯度计算阶段的avg-pool方式，改写梯度分配方式，同时整体权重需要在这三个阶段统一，这样才不会造成冲突导致不理想的结果。具体需要针对cbow和skipgram两种训练词向量的接口分别进行修改，主要修改逻辑在Fasttext和Model这两个模块中，同时为了做到可配置，还需要修改Args模块中部分逻辑。
 
 
 2) 融合fastText的wi,wo两个参数矩阵作为词向量的表达
@@ -32,13 +32,12 @@ fasttext社区版源码存在一些问题：在引入subword ngram embedding的�
 但目前negative sampling是更主流的方式，也是fasttext的默认选择。并且通过实际测试在此情况下，wo对于词义的表达效果优异，因此这里通过加权的方式将wi和wo融合起来作为最终的词向量表达。
 
 
-综上，本工具具体的修改点：
-1) 实测wo的语义表达效果优异，因此融合fastText的wi,wo两个embedding矩阵输出词向量 
-2) 针对char ngram embedding导致过度关注字面的问题，提供对wi的word embedding和char ngram embedding加权的能力，而不是像原版中简单的进行avg-pooling。 
+综上，总结本工具的修改点：
+1) 提供对wi的word embedding和char ngram embedding非均匀加权的能力。包括改写训练阶段的avg-pool为加权avg-pool，改写梯度分配，改写词向量计算的avg-pool。
+2) 融合fastText的wi,wo两部分参数矩阵输出词向量 
 3) 提供一个配套的测试方法和词向量输出方法，对比评估原版词向量和优化后词向量的nn结果，输出优化后的词向量文件。
-4) 提供一套默认参数，该参数适合大多数中文词向量训练(中文词长度跟英文差异巨大，默认的char ngram窗口参数不适用于中文) 
-5) 为了测试认识char ngram embedding，改写printNgrams()为printNgramsEx()能够获取大量char ngram embedding写入文件。提供一个输出全量char emb的方法 
-6) 改写训练阶段的avg-pool为加权avg-pool，改写梯度分配。
+4) 为了方便使用char ngram embedding，提供一个输出全量char embedding的方法。 
+
 
  
 
@@ -46,7 +45,7 @@ fasttext社区版源码存在一些问题：在引入subword ngram embedding的�
 
 安装方式同社区版fastText相同。训练模型时主要添加额外参数：
 
-1）factor(default 0)，该参数表明对word emb的加权权重，factor=2表示word emb的加权权重是其余ngram emb的2倍。 factor越大，模型对word emb的训练权重也越大，ngram emb/char emb的权重越小。该参数控制了词向量在语义和字面匹配之间的权衡。
+1） factor(default 0)，该参数表明对word emb的加权权重，factor=2表示word emb的加权权重是其余ngram emb的2倍。 factor越大，模型对word emb的训练权重也越大，ngram emb/char emb的权重越小。该参数控制了词向量在语义和字面匹配之间的权衡。
 
 2） addWo(default 0)，该参数设置最终词向量使用wo矩阵的占比，默认0同社区版fasttext相同，即wo不参与最终词向量的计算。addWo=1时，wo矩阵无衰减参与最终词向量的表达。
 
@@ -110,7 +109,11 @@ word representation. In Empirical Methods in Natural Language Processing (EMNLP)
 
 [3] Ofir Press and Lior Wolf. Using the output embedding to improve language models. arXiv preprint arXiv:1608.05859, 2016
 
-
+ 
+  
+   
+    
+    
 以下摘录社区版内容：
 # fastText
 [fastText](https://fasttext.cc/) is a library for efficient learning of word representations and sentence classification.
