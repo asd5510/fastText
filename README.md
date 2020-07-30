@@ -109,12 +109,14 @@ word representation. In Empirical Methods in Natural Language Processing (EMNLP)
 
 [3] Ofir Press and Lior Wolf. Using the output embedding to improve language models. arXiv preprint arXiv:1608.05859, 2016
 
- 
-  
-   
+ <br> 
+<br>   
+<br>
+<br> 
+<br>   
+<br>
 ***
-***
-***
+<br>
     
 以下摘录社区版内容：
 # fastText
