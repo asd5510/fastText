@@ -1,13 +1,13 @@
 # fastText中文词向量训练调优
 这个工具基于最新版本fastText，针对于原版fastText对中文词向量训练存在的一些问题，探讨如何能够训练输出一份更优质的中文词向量。
 
-##背景
+## 背景
 
 此处背景是fastText训练词向量的方式同其余词向量训练工具(如gensim)的最大区别在于引入了subword ngram embedding机制。该机制会将词拆解成subword学习其embedding，在英文场景下该方式可以学习如ing，en，sub等词根的语义，对于中文而言可以实现字向量建模。该方法不仅能够学习出更精细的词向量，还能有效应对未登录词(UNK)。该方式下，最终词向量除包含词本身的embedding外还加权了subword ngram embedding。
 
 fasttext社区版源码存在一些问题：在引入subword ngram embedding的情况下，会出现词向量表达太过注重字面而非语义的情况，最终效果往往不如gensim等其他工具训练的词向量。这一点不少人都有提及[1]，比如’交易’的相似词汇gensim给出的是’买卖’，而fastText给出的是’交易法’。这里主要原因在于fastText最终的词向量采用了average-pooling融合word embedding和subword ngram embedding，无差别的avg-pool让字向量的权重过高。就拿"交易"这个词为例，FastText最终得到的词向量为：1/3*(w2v("交易")+c2v("交")+c2v("易"))，w2v("交易")只占了1/3的权重。
 
-##修改点
+## 修改点
 
 本工具基于最新版本fastText，针对上述问题调优，尝试训练输出一份更优质的中文词向量。主要优化点在于：
 
@@ -40,7 +40,7 @@ fasttext社区版源码存在一些问题：在引入subword ngram embedding的�
 
  
 
-##使用方法：
+## 使用方法：
 
 安装方式同社区版fastText相同。训练模型时主要添加额外参数：
 
@@ -59,7 +59,7 @@ fasttext社区版源码存在一些问题：在引入subword ngram embedding的�
 此处minn和maxn的参数都设置为1，即仅使用中文字向量，这适用于大部分中文词向量的训练，因为中文词不像英文单词由大量char构成，因此minn=maxn=1保证只使用1-gram 
 
 
-#效果对比评估，公开小语料集training_m.data。
+# 效果对比评估，公开小语料集training_m.data。
 
 ./fasttext cbow -input training_m.data -output model_github_f3 -minn 1 -maxn 1 -factor 3 -addWo 0.5 –saveSubwords 
 
