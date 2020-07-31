@@ -53,14 +53,18 @@ make
 
 为了方便测试项目附带了一个数据集test_data.zip，首先通过命令：
 
-```unzip test_data.zip```
+```
+unzip test_data.zip
+```
 
 解压后得到training_m.data，一个很小的中文问答数据集，我已经预先分词了可以直接作为fasttext的输入。
 
 
 然后按推荐的参数训练，这里使用skipgram：
 
-```./fasttext skipgram -input training_m.data -output model_opt -minn 1 -maxn 1 -factor 5 -addWo 0.5```
+```
+./fasttext skipgram -input training_m.data -output model_opt -minn 1 -maxn 1 -factor 5 -addWo 0.5
+```
 
 介绍一下这里额外添加的参数：
 
@@ -73,7 +77,9 @@ make
 
 为了对比使用默认参数训练一个模型作为对比：
 
-```./fasttext skipgram -input training_m.data -output model_raw -minn 1 -maxn 1```
+```
+./fasttext skipgram -input training_m.data -output model_raw -minn 1 -maxn 1
+```
 
 按此默认参数下得到的模型同社区版直接训练的结果是一致的。此处minn和maxn的参数都设置为1，即仅使用中文字向量，这适用于大部分中文词向量的训练，因为中文词不像英文单词由大量char构成，因此minn=maxn=1保证只使用1-gram 
 
@@ -94,7 +100,7 @@ make
 结果如下：
 
 ```python
-model_opt.bin的结果
+model_opt.bin的结果：
 Query word? 饺子
 蒜蓉 0.690226
 切好 0.681618
@@ -107,7 +113,7 @@ Query word? 饺子
 熬 0.650505
 烧沸 0.645527
 
-model_raw.bin的结果
+model_raw.bin的结果：
 柿子 0.892918
 饺子皮 0.878708
 筷子 0.871597
@@ -121,7 +127,7 @@ model_raw.bin的结果
 
 ---------------------------------------------
 
-model_opt.bin的结果
+model_opt.bin的结果：
 Query word? 跑车
 双门 0.724573
 轿车 0.72284
@@ -134,7 +140,7 @@ SUV 0.709904
 加长版 0.674641
 豪华轿车 0.670435
 
-model_raw.bin的结果
+model_raw.bin的结果：
 Query word? 跑车
 跑车 0.946714
 车内 0.848424
@@ -151,7 +157,7 @@ Query word? 跑车
 可以看出原版fasttext对于subword字向量的权重太高，导致kNN的结果中出现不少字面匹配的奇怪词汇。相比之下优化后的结果能够更好的捕捉语义上的相似。
 
 ```python
-model_opt.bin的结果
+model_opt.bin的结果：
 Query word? 设力电水
 民用建筑 0.6186
 模具设计 0.613224
@@ -170,8 +176,20 @@ Query word? 设力电水
 
 ##其他功能
 
-保存subwords:
-./fasttext cbow -input training_m.data -output model_with_subwords -minn 1 -maxn 1 -factor 3 -addWo 0.5 –saveSubwords 
+社区版fasttext提供了导出词向量的功能，但无法导出全量subwords embedding，而这是fasttext词向量的核心，因此增加一个导出功能，通过添加参数-saveSubwords。
+
+```
+./fasttext cbow -input training_m.data -output model_with_subwords -saveSubwords -minn 1 -maxn 1 -factor 10 -addWo 0.5
+```
+
+导出文件保存为：模型文件名+_subwords.vec。这里就是model_with_subwords_subwords.vec
+
+这样就可以更灵活的使用和分析字向量：
+
+ ![subword embedding](charemb.png "subword embedding")
+
+顺便提一下这里使用了CBOW而不是skipgram，该模型需要的factor值会比skipgram更大一些，实测取8-12比较合适。
+
 
 <br> 
 <br> 
