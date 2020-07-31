@@ -84,7 +84,7 @@ void Model::update(const std::vector<int32_t> &input, const std::vector<int32_t>
   for (auto it = input.cbegin(); it != input.cend(); ++it) {
     wi_->addVectorToRow(grad, *it, 1.0);
   }
-  for (int i=0; i<factor; i++) wi_->addVectorToRow(grad, *input.cbegin(), 1.0); //grad add weight
+//  for (int i=0; i<factor; i++) wi_->addVectorToRow(grad, *input.cbegin(), 1.0); //grad add weight //bug fix, already more grad for word part.
 }
 
 real Model::std_log(real x) const {

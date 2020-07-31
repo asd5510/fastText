@@ -353,7 +353,7 @@ void nn(const std::vector<std::string> args) {
   std::cout << prompt;
   std::string queryWord;
   while (std::cin >> queryWord) {
-    std::cout << queryWord;
+//    std::cout << queryWord;
     printPredictions(fasttext.getNNMod(queryWord, k, fasttext.getArgs().factor, fasttext.getArgs().addWo), true, true);
     std::cout << prompt;
   }
