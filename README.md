@@ -114,6 +114,7 @@ Query word? 饺子
 烧沸 0.645527
 
 model_raw.bin的结果：
+Query word? 饺子
 柿子 0.892918
 饺子皮 0.878708
 筷子 0.871597
@@ -174,7 +175,7 @@ Query word? 设力电水
 
 
 
-##其他功能
+## 其他功能
 
 社区版fasttext提供了导出词向量的功能，但无法导出全量subwords embedding，而这是fasttext词向量的核心，因此增加一个导出功能，通过添加参数-saveSubwords。
 
